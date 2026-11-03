@@ -19,7 +19,7 @@ const ROLES = {
 };
 
 export const DOJO = {
-  version: 'dojo5g',
+  version: 'dojo5h',
   palette: PALETTE,
   nightFloor: 0.35,
   // floorstyle.js FALLBACK kit materials
@@ -136,47 +136,55 @@ export function buildShell(floorObj, height = 2.7) {
   band.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.4)));
   mark(band);
 
-  // 4 eaves — project INTO the cutaway (toward +x/+z) so the iso camera sees stacked tiers.
-  // Outside-only eaves sit behind opaque far walls and vanish from this view.
+  // 4 eaves — 3 yellow tiers INTO cutaway + blue spacer bands between (must read as steps from iso).
   const eaveGeo = new THREE.BoxGeometry(1, 1, 1);
   const TIERS = 3;
-  const eave = new THREE.InstancedMesh(eaveGeo, mats.tile, TIERS * 2 + 2);
-  let ei = 0;
-  const tip = 0.22; // slight tip; mostly flat so top faces read from above
+  const yellow = new THREE.InstancedMesh(eaveGeo, mats.tile, TIERS * 2 + 2);
+  const spacers = new THREE.InstancedMesh(eaveGeo, mats.blue, (TIERS - 1) * 2);
+  let yi = 0, si = 0;
+  const tip = 0.18;
   for (let t = 0; t < TIERS; t++) {
-    const y = y0 + H + 0.2 + t * 0.52;
-    const out = 1.7 - t * 0.4;       // lower tier wider
-    const thick = 0.2 - t * 0.025;
-    const spanW = W + 0.8 - t * 0.35;
-    const spanD = D + 0.8 - t * 0.35;
-    // −z far wall: overhang INTO room (+z) and a little outside
+    const y = y0 + H + 0.25 + t * 0.72;
+    const out = 2.2 - t * 0.7;
+    const thick = 0.22;
+    const spanW = W + 1.2 - t * 0.55;
+    const spanD = D + 1.2 - t * 0.55;
     e.set(tip, 0, 0); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 + W / 2, y, z0 + out * 0.25), q, new THREE.Vector3(spanW, thick, out)));
-    // −x far wall: overhang INTO room (+x)
+    yellow.setMatrixAt(yi++, tmpM.compose(
+      new THREE.Vector3(x0 + W / 2, y, z0 + out * 0.35), q, new THREE.Vector3(spanW, thick, out)));
     e.set(0, 0, -tip); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 + out * 0.25, y, z0 + D / 2), q, new THREE.Vector3(out, thick, spanD)));
+    yellow.setMatrixAt(yi++, tmpM.compose(
+      new THREE.Vector3(x0 + out * 0.35, y, z0 + D / 2), q, new THREE.Vector3(out, thick, spanD)));
+    if (t < TIERS - 1) {
+      const sy = y + 0.36, so = out - 0.35, st = 0.1;
+      const sw = spanW - 0.3, sd = spanD - 0.3;
+      e.set(tip, 0, 0); q.setFromEuler(e);
+      spacers.setMatrixAt(si++, tmpM.compose(
+        new THREE.Vector3(x0 + W / 2, sy, z0 + so * 0.35), q, new THREE.Vector3(sw, st, so)));
+      e.set(0, 0, -tip); q.setFromEuler(e);
+      spacers.setMatrixAt(si++, tmpM.compose(
+        new THREE.Vector3(x0 + so * 0.35, sy, z0 + D / 2), q, new THREE.Vector3(so, st, sd)));
+    }
   }
-  // near rails — thin, outside only
   {
-    const y = y0 + H + 0.15, out = 0.36, thick = 0.07;
+    const y = y0 + H + 0.18, out = 0.34, thick = 0.07;
     e.set(-tip * 0.5, 0, 0); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
+    yellow.setMatrixAt(yi++, tmpM.compose(
       new THREE.Vector3(x0 + W / 2, y, z1 + out * 0.9), q, new THREE.Vector3(W * 0.45, thick, out)));
     e.set(0, 0, tip * 0.5); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
+    yellow.setMatrixAt(yi++, tmpM.compose(
       new THREE.Vector3(x1 + out * 0.9, y, z0 + D / 2), q, new THREE.Vector3(out, thick, D * 0.45)));
   }
-  mark(eave);
+  mark(yellow);
+  mark(spacers);
 
-  // 5 gold ridge — above uppermost inward tier (still on far side of open volume)
+  // 5 gold ridge on top tier
   const ridge = new THREE.InstancedMesh(pl, mats.gold, 2);
-  const ry = y0 + H + 0.2 + (TIERS - 1) * 0.52 + 0.35;
+  const ry = y0 + H + 0.25 + (TIERS - 1) * 0.72 + 0.4;
   ridge.setMatrixAt(0, tmpM.compose(
-    new THREE.Vector3(x0 + W / 2, ry, z0 + 0.35), new THREE.Quaternion(), new THREE.Vector3(W * 0.45, 0.12, 0.12)));
+    new THREE.Vector3(x0 + W / 2, ry, z0 + 0.4), new THREE.Quaternion(), new THREE.Vector3(W * 0.4, 0.14, 0.14)));
   ridge.setMatrixAt(1, tmpM.compose(
-    new THREE.Vector3(x0 + 0.35, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.12, 0.12, D * 0.45)));
+    new THREE.Vector3(x0 + 0.4, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.14, 0.14, D * 0.4)));
   mark(ridge);
 
   g.userData.mats = Object.values(mats);
