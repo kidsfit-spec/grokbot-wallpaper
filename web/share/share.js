@@ -16,7 +16,7 @@ const W = 1600, H = 900;
 const SUPERSAMPLE = 1.5;                               // desktop only: phones render at 1x (GPU memory)
 const MARK_SRC = new URL('../../assets/brand/logo-mark.png', import.meta.url).href;
 const FILE_NAME = 'grok-bot-office.png';
-const POST_TEXT = '我的 KIDS FIT HQ';
+const POST_TEXT = '我的怪獸道場';
 const INK = '#16171A', GREY = '#7A7B82', WORKING = '#34C759';
 const BRAND_FONT = '"Nunito", ui-rounded, system-ui, sans-serif';
 const TEXT_FONT = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -63,7 +63,7 @@ function caption(g, mark, parts) {
   g.fillStyle = INK;
   g.font = `900 34px ${BRAND_FONT}`;
   track(g, -0.3);
-  g.fillText('KIDS FIT HQ', mark ? m + s + 18 : m, cy + capHalf(g));
+  g.fillText('怪獸道場', mark ? m + s + 18 : m, cy + capHalf(g));
 
   // "18 bots · 4 teams · ● 6 working now": the numbers in ink, the words in grey, right-aligned
   track(g, 0);
@@ -135,7 +135,7 @@ function fonts() {
   if (!document.fonts?.load) return Promise.resolve();
   const want = [`900 34px ${BRAND_FONT}`, `500 26px ${TEXT_FONT}`, `650 26px ${TEXT_FONT}`];
   return Promise.race([
-    Promise.all(want.map((f) => document.fonts.load(f, 'KIDS FIT HQ 0123456789 位分區工作中'))),
+    Promise.all(want.map((f) => document.fonts.load(f, '怪獸道場 0123456789 位分區工作中'))),
     new Promise((r) => setTimeout(r, 2000)),
   ]).catch(() => {});
 }

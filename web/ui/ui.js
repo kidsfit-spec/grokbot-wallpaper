@@ -485,7 +485,7 @@ function buildTopbar(root) {
   const clock = h('span', { class: 'bhq-num bhq-clock', text: '--:--' });
   const brand = h('div', { class: 'bhq-brand bhq-surface' },
     h('img', { class: 'bhq-mark', src: MARK_SRC, alt: '', draggable: 'false' }),
-    h('b', { class: 'bhq-word', text: 'KIDS FIT HQ' }),
+    h('b', { class: 'bhq-word', text: '怪獸道場' }),
     h('span', { class: 'bhq-sep', 'aria-hidden': 'true' }),
     h('span', { class: 'bhq-live' }, h('i', { class: 'bhq-dot bhq-live-dot', 'aria-hidden': 'true' }), '直播 · ', clock));
 
