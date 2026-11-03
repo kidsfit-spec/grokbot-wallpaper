@@ -192,6 +192,18 @@ export class StateStore {
     this.dirty = true;
   }
 
+  /** Drop a bot from the office (desk free). Used when a replace-roster drops old names. */
+  removeBot(id) {
+    const bot = this.bots.get(id);
+    if (!bot) return false;
+    if (bot.assign) this.members.get(bot.assign.floor)?.delete(bot.assign.desk);
+    this.bots.delete(id);
+    this.schedules.delete(id);
+    this.botsCfg.delete(id);
+    this.dirty = true;
+    return true;
+  }
+
   // ---------- ingestion ----------
 
   /** Apply a batch of parsed journal objects. Call commit() afterwards. */

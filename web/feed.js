@@ -11,6 +11,7 @@
 // Lines on the channel (one JSON object per message, at most 4 KB, anything else is dropped):
 //   {"bot":"…","status":"working|idle|waiting_user|error|done","step":"…"}     a status change
 //   {"roster":["Bot A","Bot B"]}                                                every bot appears, idle until it posts
+//   {"roster":["Bot A","Bot B"],"replace":true}                                 same, then drop every bot not on the list
 //   {"looks":{"Bot A":{"shape":"sphere","color":"#RRGGBB","accessory":"none"}}} how each bot's blob looks
 //   {"type":"usage","total_used_pct":37,"resets_at":"…","bots":{"Bot A":4.1}}  the weekly limit meter
 //   {"groups":{"Bot A":"Content"}}                                            teams, one floor each
@@ -132,8 +133,16 @@ export async function connectFeed({ topic, servers }, onState) {
     if (!rec || typeof rec !== 'object' || Array.isArray(rec)) return false;
     const t = typeof rec.t === 'string' ? rec.t : new Date(time * 1000).toISOString();
     if (Array.isArray(rec.roster)) {
-      for (const name of rec.roster.slice(0, 400)) {
-        if (typeof name === 'string' && name.trim() && !store.bots.has(botIdFor(name))) store.apply({ t, bot: name, status: 'idle', step: '', listed: true }, { replay });
+      const names = rec.roster.slice(0, 400).filter((n) => typeof n === 'string' && n.trim()).map((n) => n.trim().slice(0, 80));
+      for (const name of names) {
+        if (!store.bots.has(botIdFor(name))) store.apply({ t, bot: name, status: 'idle', step: '', listed: true }, { replay });
+      }
+      if (rec.replace === true) {                         // drop ghosts / old display names not on this list
+        const keepIds = new Set(names.map(botIdFor));
+        const keepNames = new Set(names);
+        for (const id of [...store.bots.keys()]) if (!keepIds.has(id)) store.removeBot(id);
+        for (const name of Object.keys(cfg)) if (!keepNames.has(name)) delete cfg[name];
+        store.setBotsConfig(cfg);
       }
       return true;
     }
