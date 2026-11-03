@@ -8,7 +8,8 @@ import * as THREE from 'three';
 import { Spring, smoothstep } from './spring.js';
 import { FLOOR_STEP, SLAB, SHAFT_POS } from './office.js';
 import { WallDisplays } from './walls.js';
-import { floorStyles, applyFloorStyle, styleObjects, styleNightMaps } from './floorstyle.js?v=dojo4';
+import { floorStyles, applyFloorStyle, styleObjects, styleNightMaps } from './floorstyle.js?v=dojo5';
+import { buildShell } from '../style/dojo.js?v=dojo5';
 
 const LIFT = 20;                        // how far upper floors slide up, out of the frame (m)
 const SWAP_AT = 0.14;                   // s after a switch starts: blur peak, open/closed swap
@@ -69,6 +70,8 @@ class Instance {
     if (kind === 'open') {
       const ws = this.obj.getObjectByName('wall_screen'), tb = this.obj.getObjectByName('task_board');
       if (ws || tb) this.walls = new WallDisplays(ws, tb);
+      const shell = buildShell(this.obj);
+      if (shell) { this.root.add(shell); for (const m of shell.userData.mats) this.mats.push(m); }
     }
   }
 

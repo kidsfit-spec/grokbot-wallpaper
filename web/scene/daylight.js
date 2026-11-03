@@ -16,6 +16,7 @@
 import * as THREE from 'three';
 import { smoothstep, lerp, clamp } from './spring.js';
 import { createSunPatch } from './sunpatch.js';
+import { relight, relightGlass } from '../style/dojo.js?v=dojo5';
 
 const rgb = (hex) => { const c = new THREE.Color(hex); c.convertLinearToSRGB(); return [c.r, c.g, c.b]; };
 
@@ -304,26 +305,10 @@ export function createDaylight({ scene, renderer }) {
       if (kind === 'lamp') mat.emissiveIntensity = p.lamps * 2.4;
       else if (kind === 'windows') mat.emissiveIntensity = p.windows * 1.7;
     }
-    for (const mat of baked) {
-      const d = mat.userData.dojoTint;
-      if (typeof d === 'number') {
-        mat.color.setHex(d);
-        mat.color.r *= p.tint[0];
-        mat.color.g *= p.tint[1];
-        mat.color.b *= p.tint[2];
-      } else {
-        mat.color.setRGB(...p.tint);
-      }
-    }
+    for (const mat of baked) relight(mat, p);
     tmp.setRGB(...p.glassC, THREE.SRGBColorSpace);
     for (const mat of glass) {
-      const d = mat.userData.dojoTint;
-      if (typeof d === 'number') {
-        // dojo amber replaces the time-of-day glassC (navy at night was wiping the tint)
-        mat.color.setHex(d);
-      } else {
-        mat.color.copy(tmp);
-      }
+      relightGlass(mat, p, tmp);
       mat.emissive.copy(mat.color).multiplyScalar(p.glassE);
       mat.opacity = p.glassA;
     }

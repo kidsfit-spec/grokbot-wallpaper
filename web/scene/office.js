@@ -3,7 +3,8 @@
 // load fails, a procedural placeholder that follows the same contract is built in code.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildFloorStyles } from './floorstyle.js?v=dojo4';
+import { buildFloorStyles } from './floorstyle.js?v=dojo5';
+import { applyMaterials } from '../style/dojo.js?v=dojo5';
 
 export const DESK_COUNT = 20;
 export const LOUNGE_COUNT = 6;
@@ -56,7 +57,6 @@ export async function loadOfficeAssets(baseUrl) {
 // Per-floor accent + lounge corners (floorstyle.js) are added to the template here, after the spots are read. They need
 // the GLB lounge; the placeholder floor keeps one look (style = null).
 function finish(templates, spots, nightMaps, source) {
-  try { dojoify(templates); } catch (err) { console.warn('[office] dojo tint skipped:', err.message); }
   try { imacify(templates.floor_open); } catch (err) { console.warn('[office] iMac swap skipped:', err.message); }
   // re-read spots after iMac swap so screen_NN empties match the new glass
   try { spots = collectSpots(templates.floor_open); } catch (err) { console.warn('[office] spot refresh skipped:', err.message); }
@@ -66,43 +66,8 @@ function finish(templates, spots, nightMaps, source) {
   } catch (err) {
     console.warn('[office] floor styles skipped:', err.message);
   }
-  try { dojoify(templates); } catch (err) { console.warn('[office] dojo retint skipped:', err.message); }  // again after floorstyle Kit mats
+  try { applyMaterials(templates); } catch (err) { console.warn('[office] dojo style skipped:', err.message); }  // after floorstyle so its Kit mats are styled too
   return { templates, spots, nightMaps, source, style };
-}
-
-// 怪獸道場 — Wong Tai Sin-inspired architectural palette (colours only). Retints materials by name; a multiply via
-// .color keeps baked lightmaps/maps intact. ?dojo=0 disables.
-const DOJO_TINT = {
-  // Wong Tai Sin plaster / vermillion / amber — hot enough to read through lightmaps + night ambient
-  wall_white: 0xFFD24A, baked_wall_left: 0xFFC933,
-  baked_floor: 0xD4B48A, cabin_floor: 0xD4B48A, slab_white: 0xE8DFD0, baked_slab_top: 0xE8DFD0,
-  oak: 0x5C2E1F, trunk: 0x3D1F1A,
-  fabric_warm: 0xD12B1B, fabric_light: 0xE8C878,
-  glass_pane: 0xE8B44A, glass_cabin: 0xE8B44A, glass_shaft: 0xE8B44A, night_windows: 0xE0A838,
-  roof_deck: 0xE8B923,
-  mullion_light: 0xA67C3A, aluminium: 0xA67C3A,
-  bar_white: 0xEDE3CC, pot_white: 0xEDE3CC,
-  graphite: 0x4A1810, black: 0x2A100C,
-};
-function dojoify(templates) {
-  if (new URLSearchParams(location.search).get('dojo') === '0') return;
-  const done = new Set();
-  for (const root of Object.values(templates)) {
-    root?.traverse((o) => {
-      if (!o.isMesh) return;
-      for (const m of [].concat(o.material)) {
-        if (!m || done.has(m) || !m.color) continue;
-        let hex = DOJO_TINT[m.name] ?? DOJO_TINT[o.name];
-        if (hex == null && /^leaf/.test(m.name || '')) hex = 0x4E8A5C;   // richer jade
-        if (hex == null) continue;
-        done.add(m);
-        m.userData.dojoTint = hex;          // daylight.js multiplies ambient by this (baked/glass)
-        m.color.setHex(hex);
-        if (m.name === 'night_windows' && m.emissive) m.emissive.setHex(0xE0A838);
-        m.needsUpdate = true;
-      }
-    });
-  }
 }
 
 // KIDS FIT HQ — colorful iMacs (Apple 24″ seven colors). Replaces every desk laptop (GLB `laptops` group or the
