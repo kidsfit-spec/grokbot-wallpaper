@@ -233,6 +233,9 @@ export class StateStore {
         days: new Map(), history: [], eff: 'idle', sig: '',
       };
       this.bots.set(id, bot);
+    } else if (bot.name !== name) {
+      bot.name = name;                           // rename that shares botIdFor (e.g. 思考大師→思考仙師)
+      this.dirty = true;
     }
     const now = this.now();
     let ms = parseTime(rec.t);

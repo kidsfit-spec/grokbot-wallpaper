@@ -135,7 +135,10 @@ export async function connectFeed({ topic, servers }, onState) {
     if (Array.isArray(rec.roster)) {
       const names = rec.roster.slice(0, 400).filter((n) => typeof n === 'string' && n.trim()).map((n) => n.trim().slice(0, 80));
       for (const name of names) {
-        if (!store.bots.has(botIdFor(name))) store.apply({ t, bot: name, status: 'idle', step: '', listed: true }, { replay });
+        const id = botIdFor(name);
+        const existing = store.bots.get(id);
+        if (!existing) store.apply({ t, bot: name, status: 'idle', step: '', listed: true }, { replay });
+        else if (existing.name !== name) { existing.name = name; store.dirty = true; }
       }
       if (rec.replace === true) {                         // drop ghosts / old display names not on this list
         const keepIds = new Set(names.map(botIdFor));
