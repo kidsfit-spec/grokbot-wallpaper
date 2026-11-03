@@ -19,7 +19,7 @@ const ROLES = {
 };
 
 export const DOJO = {
-  version: 'dojo5b',
+  version: 'dojo5c',
   palette: PALETTE,
   nightFloor: 0.35,
   // floorstyle.js FALLBACK kit materials
@@ -77,12 +77,18 @@ export function applyCssVars(el = document.documentElement) {
   for (const [k, v] of Object.entries(cssVars())) el.style.setProperty(k, v);
 }
 
-// Procedural temple shell around an open floor: plinth, columns, lintel band, eaves, ridge.
-// Only the two far sides (−x, −z) get columns/eaves: the camera looks from +x,+z (scene.js ISO_DIR).
+// Procedural temple shell around an open floor: plinth, columns, lintel, eaves, ridge.
+// Visible from the isometric camera (ISO_DIR +x+y+z): wrap all four sides; near (+x/+z) eaves stay light so desks stay open.
+// InstancedMesh MUST recompute its bounding sphere (or frustumCulled=false) or instances far from the origin are culled.
 export function buildShell(floorObj, height = 2.7) {
   if (!fromUrl().shell || !floorObj) return null;
   floorObj.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(floorObj);
+  // Localise to the floor's parent (Instance.root) so world elevators don't skew XZ.
+  if (floorObj.parent) {
+    const inv = new THREE.Matrix4().copy(floorObj.parent.matrixWorld).invert();
+    box.applyMatrix4(inv);
+  }
   if (!Number.isFinite(box.min.x)) return null;
   const lam = (c) => new THREE.MeshLambertMaterial({ color: c });
   const mats = {
@@ -91,51 +97,65 @@ export function buildShell(floorObj, height = 2.7) {
   };
   const g = new THREE.Group();
   g.name = 'dojo_shell';
-  const x0 = box.min.x, x1 = box.max.x, z0 = box.min.z, z1 = box.max.z, y0 = 0;
-  const W = x1 - x0, D = z1 - z0, H = height;
+  const x0 = box.min.x, x1 = box.max.x, z0 = box.min.z, z1 = box.max.z, y0 = Math.min(0, box.min.y);
+  const W = Math.max(1, x1 - x0), D = Math.max(1, z1 - z0), H = height;
+  const tmpM = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  const mark = (mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; g.add(mesh); };
 
-  // 1 plinth (L-shaped strip along the far sides, merged into one box each would be 2 calls; use thin back strips)
+  // 1 plinth — full ring (4 strips)
   const pl = new THREE.BoxGeometry(1, 1, 1);
-  const plinth = new THREE.InstancedMesh(pl, mats.stone, 2);
-  const tmpM = new THREE.Matrix4();
-  plinth.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 - 0.12, z0 - 0.15), new THREE.Quaternion(), new THREE.Vector3(W + 0.6, 0.24, 0.3)));
-  plinth.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 - 0.15, y0 - 0.12, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.3, 0.24, D + 0.6)));
-  g.add(plinth);
+  const plinth = new THREE.InstancedMesh(pl, mats.stone, 4);
+  const ph = 0.28, pt = 0.45;
+  plinth.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 - ph / 2, z0 - pt / 2), new THREE.Quaternion(), new THREE.Vector3(W + pt * 2, ph, pt)));
+  plinth.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 - ph / 2, z1 + pt / 2), new THREE.Quaternion(), new THREE.Vector3(W + pt * 2, ph, pt)));
+  plinth.setMatrixAt(2, tmpM.compose(new THREE.Vector3(x0 - pt / 2, y0 - ph / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(pt, ph, D)));
+  plinth.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1 + pt / 2, y0 - ph / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(pt, ph, D)));
+  mark(plinth);
 
-  // 2 columns (instanced)
+  // 2 vermillion columns — all four sides, skip corners double-count by using edges only
   const pos = [];
-  const nx = Math.max(2, Math.round(W / 2.2)), nz = Math.max(2, Math.round(D / 2.2));
-  for (let i = 0; i <= nx; i++) pos.push([x0 + (W * i) / nx, z0]);
-  for (let i = 1; i <= nz; i++) pos.push([x0, z0 + (D * i) / nz]);
-  const cols = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09, 0.1, H, 10), mats.col, pos.length);
+  const nx = Math.max(3, Math.round(W / 2.0)), nz = Math.max(3, Math.round(D / 2.0));
+  for (let i = 0; i <= nx; i++) { const x = x0 + (W * i) / nx; pos.push([x, z0], [x, z1]); }
+  for (let i = 1; i < nz; i++) { const z = z0 + (D * i) / nz; pos.push([x0, z], [x1, z]); }
+  const cols = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.13, H, 12), mats.col, pos.length);
   pos.forEach(([x, z], i) => cols.setMatrixAt(i, tmpM.makeTranslation(x, y0 + H / 2, z)));
-  g.add(cols);
+  mark(cols);
 
-  // 3 lintel band (instanced, 2 sides)
-  const band = new THREE.InstancedMesh(pl, mats.blue, 2);
-  band.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - 0.12, z0), new THREE.Quaternion(), new THREE.Vector3(W + 0.2, 0.24, 0.22)));
-  band.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0, y0 + H - 0.12, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.22, 0.24, D + 0.2)));
-  g.add(band);
+  // 3 lintel band — full ring
+  const band = new THREE.InstancedMesh(pl, mats.blue, 4);
+  const bh = 0.28, bt = 0.26;
+  band.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - bh / 2, z0), new THREE.Quaternion(), new THREE.Vector3(W + 0.3, bh, bt)));
+  band.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - bh / 2, z1), new THREE.Quaternion(), new THREE.Vector3(W + 0.3, bh, bt)));
+  band.setMatrixAt(2, tmpM.compose(new THREE.Vector3(x0, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.3)));
+  band.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.3)));
+  mark(band);
 
-  // 4 eaves: two tiers of sloped tile planes, tilted down-and-out (instanced plane, 4 instances)
-  const eave = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mats.tile, 4);
-  const q = new THREE.Quaternion(), e = new THREE.Euler();
+  // 4 eaves — two tiers, four sides (8 instances). Flat-ish so the iso top-down read sees yellow tile.
+  const eave = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mats.tile, 8);
+  let ei = 0;
   for (let t = 0; t < 2; t++) {
-    const y = y0 + H + 0.05 + t * 0.45, out = 0.9 - t * 0.35, inset = t * 0.4;
-    e.set(-Math.PI / 2 - 0.45, 0, 0); q.setFromEuler(e);   // −z side: slopes down toward −z
-    eave.setMatrixAt(t * 2, tmpM.compose(new THREE.Vector3(x0 + W / 2, y, z0 - out / 2 + inset), q, new THREE.Vector3(W + 1.2 - t * 0.8, out, 1)));
-    e.set(0, -Math.PI / 2, 0); const qa = new THREE.Quaternion().setFromEuler(e);
-    e.set(-Math.PI / 2 - 0.45, 0, 0); q.setFromEuler(e); qa.multiply(q);   // −x side
-    eave.setMatrixAt(t * 2 + 1, tmpM.compose(new THREE.Vector3(x0 - out / 2 + inset, y, z0 + D / 2), qa, new THREE.Vector3(D + 1.2 - t * 0.8, out, 1)));
+    const y = y0 + H + 0.08 + t * 0.5;
+    const out = 1.35 - t * 0.4;
+    const spanW = W + out * 2 - t * 0.6, spanD = D + out * 2 - t * 0.6;
+    // −z / +z (rotate X): plane faces up then tip outward
+    e.set(-Math.PI / 2 - 0.35, 0, 0); q.setFromEuler(e);
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x0 + W / 2, y, z0 - out * 0.45), q, new THREE.Vector3(spanW, out, 1)));
+    e.set(-Math.PI / 2 + 0.35, 0, 0); q.setFromEuler(e);
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x0 + W / 2, y, z1 + out * 0.45), q, new THREE.Vector3(spanW, out, 1)));
+    // −x / +x
+    e.set(-Math.PI / 2 - 0.35, Math.PI / 2, 0); q.setFromEuler(e);
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x0 - out * 0.45, y, z0 + D / 2), q, new THREE.Vector3(spanD, out, 1)));
+    e.set(-Math.PI / 2 + 0.35, Math.PI / 2, 0); q.setFromEuler(e);
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x1 + out * 0.45, y, z0 + D / 2), q, new THREE.Vector3(spanD, out, 1)));
   }
-  g.add(eave);
+  mark(eave);
 
-  // 5 gold ridge along both upper-tier tops
+  // 5 gold ridge — cross on top of upper tier
   const ridge = new THREE.InstancedMesh(pl, mats.gold, 2);
-  const ry = y0 + H + 0.62;
-  ridge.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, ry, z0 + 0.4), new THREE.Quaternion(), new THREE.Vector3(W + 0.4, 0.08, 0.08)));
-  ridge.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 + 0.4, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.08, 0.08, D + 0.4)));
-  g.add(ridge);
+  const ry = y0 + H + 0.7;
+  ridge.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, ry, (z0 + z1) / 2), new THREE.Quaternion(), new THREE.Vector3(W * 0.55, 0.1, 0.1)));
+  ridge.setMatrixAt(1, tmpM.compose(new THREE.Vector3((x0 + x1) / 2, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.1, 0.1, D * 0.55)));
+  mark(ridge);
 
   g.userData.mats = Object.values(mats);
   for (const m of g.userData.mats) m.userData.dojoShell = true;

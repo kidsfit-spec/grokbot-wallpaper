@@ -3,8 +3,8 @@
 // load fails, a procedural placeholder that follows the same contract is built in code.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildFloorStyles } from './floorstyle.js?v=dojo5b';
-import { applyMaterials } from '../style/dojo.js?v=dojo5b';
+import { buildFloorStyles } from './floorstyle.js?v=dojo5c';
+import { applyMaterials } from '../style/dojo.js?v=dojo5c';
 
 export const DESK_COUNT = 20;
 export const LOUNGE_COUNT = 6;
