@@ -56,6 +56,7 @@ export async function loadOfficeAssets(baseUrl) {
 // Per-floor accent + lounge corners (floorstyle.js) are added to the template here, after the spots are read. They need
 // the GLB lounge; the placeholder floor keeps one look (style = null).
 function finish(templates, spots, nightMaps, source) {
+  try { imacify(templates.floor_open); } catch (err) { console.warn('[office] iMac swap skipped:', err.message); }
   let style = null;
   try {
     if (new URLSearchParams(location.search).get('floorstyle') !== '0') style = buildFloorStyles(templates.floor_open, spots.lounges);   // test switch: ?floorstyle=0
@@ -63,6 +64,55 @@ function finish(templates, spots, nightMaps, source) {
     console.warn('[office] floor styles skipped:', err.message);
   }
   return { templates, spots, nightMaps, source, style };
+}
+
+// KIDS FIT HQ — colorful iMacs (Apple 24″ seven colors). Replaces every desk laptop (GLB `laptops` group or the
+// placeholder boxes) with a thin all-in-one; the new front glass keeps the name laptop_screen_NN (building.js night glow)
+// and the screen_NN empty is moved onto it.
+const IMAC_COLORS = [0xA8C5DA, 0xC7B2D6, 0xF0B8C8, 0xF0B090, 0xE8D48A, 0xA8C9A4, 0xC9CCD0];
+function imacify(open) {
+  if (!open) return;
+  open.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(open.matrixWorld).invert();
+  const olds = [];
+  open.traverse((o) => { if (o.isMesh && /^laptop_screen_\d\d$/.test(o.name)) olds.push(o); });
+  const lg = open.getObjectByName('laptops');
+  if (lg) lg.traverse((o) => { if (o.isMesh) o.visible = false; });
+  const bezel = new THREE.MeshStandardMaterial({ color: 0x0B0B0D, roughness: 0.4 });
+  for (const old of olds) {
+    const nn = old.name.slice(-2), n = Number(nn);
+    const m = new THREE.Matrix4().multiplyMatrices(inv, old.matrixWorld);
+    const p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    m.decompose(p, q, sc);
+    const dir = new THREE.Vector3(0, 0, 1).applyQuaternion(q); dir.y = 0; dir.normalize();
+    // hide the laptop chassis: the ancestor directly under the floor (placeholder group or the GLB `laptops` group)
+    let top = old; while (top.parent && top.parent !== open) top = top.parent;
+    top.traverse((o) => { if (o.isMesh) o.visible = false; });
+    old.name = `${old.name}_laptop`;
+    const col = new THREE.MeshStandardMaterial({ color: IMAC_COLORS[(n - 1) % 7], roughness: 0.35, metalness: 0.55 });
+    const g = new THREE.Group();
+    g.name = `imac_${nn}`;
+    g.position.set(p.x - dir.x * 0.05, p.y - 0.115, p.z - dir.z * 0.05);
+    g.rotation.y = Math.atan2(dir.x, dir.z);
+    const W = 0.5, H = 0.36, D = 0.014, CHIN = 0.065, LIFT = 0.1;
+    const box = (mat, w, h, d, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); b.position.set(x, y, z); g.add(b); return b; };
+    box(col, 0.15, 0.006, 0.13, 0, 0.003, -0.02);                 // foot
+    const st = box(col, 0.12, LIFT + 0.04, 0.008, 0, LIFT / 2 + 0.02, -0.03); st.rotation.x = -0.12;   // stand
+    box(col, W, H, D, 0, LIFT + H / 2, 0);                        // colored back + chin
+    box(bezel, W - 0.004, H - CHIN, 0.002, 0, LIFT + CHIN + (H - CHIN) / 2, D / 2 + 0.001);   // black bezel
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.03, H - CHIN - 0.03), new THREE.MeshStandardMaterial({ name: 'night_screen', color: 0x14171B, emissive: 0x9FD0FF, emissiveIntensity: 0, roughness: 0.3 }));
+    scr.name = `laptop_screen_${nn}`;
+    scr.position.set(0, LIFT + CHIN + (H - CHIN) / 2, D / 2 + 0.0025);
+    g.add(scr);
+    open.add(g);
+    g.updateMatrixWorld(true);
+    const e = open.getObjectByName(`screen_${nn}`);
+    if (e && e.parent) {
+      e.parent.updateMatrixWorld(true);
+      const wp = scr.getWorldPosition(new THREE.Vector3());
+      e.position.copy(e.parent.worldToLocal(wp));
+    }
+  }
 }
 
 // Baked surfaces are unlit: day lightmap as a basic material (night map is mixed in by the instance patch).
