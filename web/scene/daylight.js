@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import { smoothstep, lerp, clamp } from './spring.js';
 import { createSunPatch } from './sunpatch.js';
-import { relight, relightGlass } from '../style/dojo.js?v=dojo5c';
+import { relight, relightGlass } from '../style/dojo.js?v=dojo5d';
 
 const rgb = (hex) => { const c = new THREE.Color(hex); c.convertLinearToSRGB(); return [c.r, c.g, c.b]; };
 
