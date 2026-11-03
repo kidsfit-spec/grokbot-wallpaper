@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 
 export const PALETTE = {
-  vermillion: '#B91C1C', yellow_tile: '#E8B923', gold: '#D4AF37', lintel_blue: '#2F5F7A',
+  vermillion: '#E11D2E', yellow_tile: '#F5C211', gold: '#D4AF37', lintel_blue: '#2F5F7A',
   jade: '#3D7A6A', lacquer: '#3D1F1A', stone: '#E8DFD0',
 };
 
@@ -19,7 +19,7 @@ const ROLES = {
 };
 
 export const DOJO = {
-  version: 'dojo5e',
+  version: 'dojo5f',
   palette: PALETTE,
   nightFloor: 0.35,
   // floorstyle.js FALLBACK kit materials
@@ -78,22 +78,28 @@ export function applyCssVars(el = document.documentElement) {
 }
 
 // Procedural temple shell around an open floor: plinth, columns, lintel, eaves, ridge.
-// Visible from the isometric camera (ISO_DIR +x+y+z): wrap all four sides; near (+x/+z) eaves stay light so desks stay open.
-// InstancedMesh MUST recompute its bounding sphere (or frustumCulled=false) or instances far from the origin are culled.
+// MeshBasicMaterial so night/daylight ambient cannot hide the shell. frustumCulled=false for InstancedMesh.
 export function buildShell(floorObj, height = 2.7) {
   if (!fromUrl().shell || !floorObj) return null;
   floorObj.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(floorObj);
-  // Localise to the floor's parent (Instance.root) so world elevators don't skew XZ.
+  // Local AABB from mesh geometries (avoids world/parent skew at construct time).
+  const box = new THREE.Box3();
+  const tmp = new THREE.Box3();
+  floorObj.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+    box.union(tmp);
+  });
   if (floorObj.parent) {
     const inv = new THREE.Matrix4().copy(floorObj.parent.matrixWorld).invert();
     box.applyMatrix4(inv);
   }
-  if (!Number.isFinite(box.min.x)) return null;
-  const lam = (c) => new THREE.MeshLambertMaterial({ color: c });
+  if (!Number.isFinite(box.min.x) || box.isEmpty()) return null;
+  const basic = (c) => new THREE.MeshBasicMaterial({ color: c });
   const mats = {
-    stone: lam(PALETTE.stone), col: lam(PALETTE.vermillion), blue: lam(PALETTE.lintel_blue),
-    tile: new THREE.MeshLambertMaterial({ color: PALETTE.yellow_tile, side: THREE.DoubleSide }), gold: lam(PALETTE.gold),
+    stone: basic(PALETTE.stone), col: basic(PALETTE.vermillion), blue: basic(PALETTE.lintel_blue),
+    tile: new THREE.MeshBasicMaterial({ color: PALETTE.yellow_tile, side: THREE.DoubleSide }), gold: basic(PALETTE.gold),
   };
   const g = new THREE.Group();
   g.name = 'dojo_shell';
@@ -102,76 +108,65 @@ export function buildShell(floorObj, height = 2.7) {
   const tmpM = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
   const mark = (mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; g.add(mesh); };
 
-  // 1 plinth — full ring (4 strips)
+  // 1 plinth
   const pl = new THREE.BoxGeometry(1, 1, 1);
   const plinth = new THREE.InstancedMesh(pl, mats.stone, 4);
-  const ph = 0.28, pt = 0.45;
+  const ph = 0.32, pt = 0.5;
   plinth.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 - ph / 2, z0 - pt / 2), new THREE.Quaternion(), new THREE.Vector3(W + pt * 2, ph, pt)));
   plinth.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 - ph / 2, z1 + pt / 2), new THREE.Quaternion(), new THREE.Vector3(W + pt * 2, ph, pt)));
   plinth.setMatrixAt(2, tmpM.compose(new THREE.Vector3(x0 - pt / 2, y0 - ph / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(pt, ph, D)));
   plinth.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1 + pt / 2, y0 - ph / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(pt, ph, D)));
   mark(plinth);
 
-  // 2 vermillion columns — all four sides, skip corners double-count by using edges only
+  // 2 vermillion columns — thicker so they read at night
   const pos = [];
-  const nx = Math.max(3, Math.round(W / 2.0)), nz = Math.max(3, Math.round(D / 2.0));
+  const nx = Math.max(4, Math.round(W / 1.8)), nz = Math.max(4, Math.round(D / 1.8));
   for (let i = 0; i <= nx; i++) { const x = x0 + (W * i) / nx; pos.push([x, z0], [x, z1]); }
   for (let i = 1; i < nz; i++) { const z = z0 + (D * i) / nz; pos.push([x0, z], [x1, z]); }
-  const cols = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.13, H, 12), mats.col, pos.length);
+  const cols = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.14, 0.16, H, 12), mats.col, pos.length);
   pos.forEach(([x, z], i) => cols.setMatrixAt(i, tmpM.makeTranslation(x, y0 + H / 2, z)));
   mark(cols);
 
-  // 3 lintel band — full ring
+  // 3 lintel
   const band = new THREE.InstancedMesh(pl, mats.blue, 4);
-  const bh = 0.28, bt = 0.26;
-  band.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - bh / 2, z0), new THREE.Quaternion(), new THREE.Vector3(W + 0.3, bh, bt)));
-  band.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - bh / 2, z1), new THREE.Quaternion(), new THREE.Vector3(W + 0.3, bh, bt)));
-  band.setMatrixAt(2, tmpM.compose(new THREE.Vector3(x0, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.3)));
-  band.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.3)));
+  const bh = 0.3, bt = 0.28;
+  band.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - bh / 2, z0), new THREE.Quaternion(), new THREE.Vector3(W + 0.4, bh, bt)));
+  band.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 + W / 2, y0 + H - bh / 2, z1), new THREE.Quaternion(), new THREE.Vector3(W + 0.4, bh, bt)));
+  band.setMatrixAt(2, tmpM.compose(new THREE.Vector3(x0, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.4)));
+  band.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.4)));
   mark(band);
 
-  // 4 eaves — three tipped BoxGeometry tiers on far −x/−z; near +x/+z = thin outer rails only (no floor cover).
+  // 4 eaves — 3 deep tiers on far −x/−z; thin near rails only
   const eaveGeo = new THREE.BoxGeometry(1, 1, 1);
   const TIERS = 3;
-  const farN = TIERS * 2;   // −z and −x per tier
-  const nearN = 2;          // one thin rail each on +z / +x
-  const eave = new THREE.InstancedMesh(eaveGeo, mats.tile, farN + nearN);
+  const eave = new THREE.InstancedMesh(eaveGeo, mats.tile, TIERS * 2 + 2);
   let ei = 0;
-  const tip = 0.32;
+  const tip = 0.36;
   for (let t = 0; t < TIERS; t++) {
-    // lower tiers stick out farther (classic stacked eave read)
-    const y = y0 + H + 0.1 + t * 0.38;
-    const out = 1.55 - t * 0.38;
-    const thick = 0.16 - t * 0.02;
-    const spanW = W + out * 1.35;
-    const spanD = D + out * 1.35;
+    const y = y0 + H + 0.15 + t * 0.48;
+    const out = 1.85 - t * 0.42;
+    const thick = 0.18 - t * 0.02;
+    const spanW = W + out * 1.5;
+    const spanD = D + out * 1.5;
     e.set(tip, 0, 0); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 + W / 2, y, z0 - out * 0.52), q, new THREE.Vector3(spanW, thick, out)));
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x0 + W / 2, y, z0 - out * 0.55), q, new THREE.Vector3(spanW, thick, out)));
     e.set(0, 0, -tip); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 - out * 0.52, y, z0 + D / 2), q, new THREE.Vector3(out, thick, spanD)));
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x0 - out * 0.55, y, z0 + D / 2), q, new THREE.Vector3(out, thick, spanD)));
   }
-  // near rails: thin, pushed outside the floor so they don't clip desk corners
   {
-    const y = y0 + H + 0.1;
-    const out = 0.45, thick = 0.08;
-    e.set(-tip * 0.6, 0, 0); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 + W / 2, y, z1 + out * 0.85), q, new THREE.Vector3(W * 0.55, thick, out)));
-    e.set(0, 0, tip * 0.6); q.setFromEuler(e);
-    eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x1 + out * 0.85, y, z0 + D / 2), q, new THREE.Vector3(out, thick, D * 0.55)));
+    const y = y0 + H + 0.12, out = 0.38, thick = 0.07;
+    e.set(-tip * 0.5, 0, 0); q.setFromEuler(e);
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x0 + W / 2, y, z1 + out * 0.9), q, new THREE.Vector3(W * 0.5, thick, out)));
+    e.set(0, 0, tip * 0.5); q.setFromEuler(e);
+    eave.setMatrixAt(ei++, tmpM.compose(new THREE.Vector3(x1 + out * 0.9, y, z0 + D / 2), q, new THREE.Vector3(out, thick, D * 0.5)));
   }
   mark(eave);
 
-  // 5 gold ridge — atop the uppermost far tier
+  // 5 gold ridge on far peak
   const ridge = new THREE.InstancedMesh(pl, mats.gold, 2);
-  const ry = y0 + H + 0.1 + (TIERS - 1) * 0.38 + 0.28;
-  ridge.setMatrixAt(0, tmpM.compose(
-    new THREE.Vector3(x0 + W / 2, ry, z0 - 0.2), new THREE.Quaternion(), new THREE.Vector3(W * 0.55, 0.1, 0.1)));
-  ridge.setMatrixAt(1, tmpM.compose(
-    new THREE.Vector3(x0 - 0.2, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.1, 0.1, D * 0.55)));
+  const ry = y0 + H + 0.15 + (TIERS - 1) * 0.48 + 0.32;
+  ridge.setMatrixAt(0, tmpM.compose(new THREE.Vector3(x0 + W / 2, ry, z0 - 0.25), new THREE.Quaternion(), new THREE.Vector3(W * 0.6, 0.12, 0.12)));
+  ridge.setMatrixAt(1, tmpM.compose(new THREE.Vector3(x0 - 0.25, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.12, 0.12, D * 0.6)));
   mark(ridge);
 
   g.userData.mats = Object.values(mats);

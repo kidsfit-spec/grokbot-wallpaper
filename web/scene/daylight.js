@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import { smoothstep, lerp, clamp } from './spring.js';
 import { createSunPatch } from './sunpatch.js';
-import { relight, relightGlass } from '../style/dojo.js?v=dojo5e';
+import { relight, relightGlass } from '../style/dojo.js?v=dojo5f';
 
 const rgb = (hex) => { const c = new THREE.Color(hex); c.convertLinearToSRGB(); return [c.r, c.g, c.b]; };
 
@@ -208,8 +208,11 @@ export function createDaylight({ scene, renderer }) {
   const corner = new THREE.Vector3();
   const tmp = new THREE.Color();
 
-  const urlTime = params.get('time');
-  if (urlTime && urlTime !== 'auto') override = parseClock(urlTime);
+  const urlTime = params.get('time') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gbw.time') : null);
+  if (urlTime && urlTime !== 'auto') {
+    override = parseClock(urlTime);
+    try { if (params.get('time')) sessionStorage.setItem('gbw.time', params.get('time')); } catch (_) {}
+  }
 
   function setTime(value) {
     override = value && value !== 'auto' ? parseClock(value) : null;
