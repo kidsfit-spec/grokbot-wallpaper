@@ -655,24 +655,26 @@ function attachJellyBust(root, hex) {
     -(hb.min.z + hb.max.z) * 0.5 * s,
   );
 
-  const torsoR = Math.min(hw * s * 0.40, SIZE * 0.26);
+  const torsoR = Math.min(hw * s * 0.38, SIZE * 0.24);
   const torso = new THREE.Mesh(new THREE.SphereGeometry(1, 22, 16), mat);
   torso.name = 'torso';
-  torso.scale.set(torsoR * 1.18, TORSO_H * 0.55, torsoR * 0.92);
+  // Slightly slim torso so arms read as separate jelly sausages at isometric distance.
+  torso.scale.set(torsoR * 1.05, TORSO_H * 0.55, torsoR * 0.88);
   torso.position.set(0, TORSO_H * 0.48, 0);
   torso.castShadow = true;
   root.add(torso);
 
-  const armLen = SIZE * 0.26;
-  const armR = SIZE * 0.052;
-  const shoulderY = TORSO_H * 0.74;
-  const shoulderX = torsoR * 1.02;
+  // Arms: thicker, longer, out + forward so the isometric cam can see both.
+  const armLen = SIZE * 0.40;
+  const armR = SIZE * 0.088;
+  const shoulderY = TORSO_H * 0.78;
+  const shoulderX = torsoR * 1.45;
   for (const side of [-1, 1]) {
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(armR, armLen * 0.5, 6, 10), mat);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(armR, armLen * 0.55, 6, 12), mat);
     arm.name = side < 0 ? 'arm_L' : 'arm_R';
-    arm.position.set(side * shoulderX, shoulderY - armLen * 0.22, torsoR * 0.12);
-    arm.rotation.z = side * 0.38;
-    arm.rotation.x = 0.18;
+    arm.position.set(side * shoulderX, shoulderY - armLen * 0.28, torsoR * 0.55);
+    arm.rotation.z = side * 0.62;
+    arm.rotation.x = 0.35;
     arm.castShadow = true;
     root.add(arm);
   }
