@@ -33,6 +33,7 @@ const parts = [
   ['assets/blobs/lib', 'assets/blobs/lib', /\.(png|json)$/, { optional: true }],
   ['assets/office', 'assets/office', /^office\.glb$/],
   ['assets/office/night', 'assets/office/night', /\.jpg$/],
+  ['assets/portraits', 'assets/portraits', /\.(png|jpe?g|webp)$/, { optional: true }],
   ['assets/brand', 'assets/brand', /\.(png|svg)$/],
   ['assets/earth', 'assets/earth', /^(day|night)\.jpg$/],
 ];

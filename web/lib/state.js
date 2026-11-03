@@ -93,8 +93,13 @@ export function normLook(v) {
     const a = v.accessory.trim().toLowerCase();
     if (LOOK_ACCESSORIES.includes(a)) accessory = a;
   }
-  if (!shape && !color) return null;
-  return { shape, color, accessory };
+  let portrait = null;
+  if (typeof v.portrait === 'string') {
+    const u = v.portrait.trim();
+    if (u.length <= 300 && (/^https:\/\/[^\s"'<>]+$/i.test(u) || /^\/?assets\/[\w./-]+\.(png|jpe?g|webp)$/i.test(u)) && !u.includes('..')) portrait = u;
+  }
+  if (!shape && !color && !portrait) return null;
+  return portrait ? { shape, color, accessory, portrait } : { shape, color, accessory };
 }
 const BAD_SCHEME = /^\s*(javascript|data|vbscript|file):/i;
 

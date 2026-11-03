@@ -11,6 +11,7 @@ import { createPost } from './post.js';
 import { studioCss } from './studio.js';
 import { Actor } from './actor.js';
 import { generateBlob } from './blobgen.js';
+import { generatePortrait } from './portrait.js';
 import { Spring, clamp } from './spring.js';
 import { sofiaHour, fontsPromise } from './walls.js';
 
@@ -244,6 +245,14 @@ function attachModel(actor, bot) {
       if (actor.dead || current !== key) return;
       if (m) return actor.setModel(m.clone(true));
       const look = b.look || {};
+      const blob = () => generateBlob({ shape: look.shape, color: look.color || b.color, accessory: look.accessory, seed: b.id });
+      if (look.portrait) {
+        const url = /^https?:/i.test(look.portrait) ? look.portrait : `${ASSETS}/${look.portrait.replace(/^\/?(assets\/)?/, '')}`;
+        return generatePortrait(url, look.color || b.color || '#5C3FC8').then((g) => {
+          if (actor.dead || current !== key) return;
+          actor.setModel(g || blob());
+        });
+      }
       actor.setModel(generateBlob({ shape: look.shape, color: look.color || b.color, accessory: look.accessory, seed: b.id }));
     });
   };
