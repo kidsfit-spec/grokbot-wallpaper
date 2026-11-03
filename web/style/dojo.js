@@ -19,7 +19,7 @@ const ROLES = {
 };
 
 export const DOJO = {
-  version: 'dojo5d',
+  version: 'dojo5e',
   palette: PALETTE,
   nightFloor: 0.35,
   // floorstyle.js FALLBACK kit materials
@@ -130,44 +130,48 @@ export function buildShell(floorObj, height = 2.7) {
   band.setMatrixAt(3, tmpM.compose(new THREE.Vector3(x1, y0 + H - bh / 2, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(bt, bh, D + 0.3)));
   mark(band);
 
-  // 4 eaves — BoxGeometry slabs (not Plane+Euler; that skewed into floating diagonals).
-  // Iso camera looks from +x+y+z: put strong eaves on far −x/−z; light returns on near +x/+z so desks stay open.
+  // 4 eaves — three tipped BoxGeometry tiers on far −x/−z; near +x/+z = thin outer rails only (no floor cover).
   const eaveGeo = new THREE.BoxGeometry(1, 1, 1);
-  const eave = new THREE.InstancedMesh(eaveGeo, mats.tile, 8);
+  const TIERS = 3;
+  const farN = TIERS * 2;   // −z and −x per tier
+  const nearN = 2;          // one thin rail each on +z / +x
+  const eave = new THREE.InstancedMesh(eaveGeo, mats.tile, farN + nearN);
   let ei = 0;
-  const tip = 0.28; // radians outward tip
-  for (let t = 0; t < 2; t++) {
-    const y = y0 + H + 0.12 + t * 0.42;
-    const out = 1.15 - t * 0.35;
-    const thick = 0.14 - t * 0.02;
-    const spanW = W + out * 1.2;
-    const spanD = D + out * 1.2;
-    // −z (far back): tip outer edge down toward −z
+  const tip = 0.32;
+  for (let t = 0; t < TIERS; t++) {
+    // lower tiers stick out farther (classic stacked eave read)
+    const y = y0 + H + 0.1 + t * 0.38;
+    const out = 1.55 - t * 0.38;
+    const thick = 0.16 - t * 0.02;
+    const spanW = W + out * 1.35;
+    const spanD = D + out * 1.35;
     e.set(tip, 0, 0); q.setFromEuler(e);
     eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 + W / 2, y, z0 - out * 0.5), q, new THREE.Vector3(spanW, thick, out)));
-    // −x (far left)
+      new THREE.Vector3(x0 + W / 2, y, z0 - out * 0.52), q, new THREE.Vector3(spanW, thick, out)));
     e.set(0, 0, -tip); q.setFromEuler(e);
     eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 - out * 0.5, y, z0 + D / 2), q, new THREE.Vector3(out, thick, spanD)));
-    // +z near — shorter return, less cover
-    e.set(-tip, 0, 0); q.setFromEuler(e);
+      new THREE.Vector3(x0 - out * 0.52, y, z0 + D / 2), q, new THREE.Vector3(out, thick, spanD)));
+  }
+  // near rails: thin, pushed outside the floor so they don't clip desk corners
+  {
+    const y = y0 + H + 0.1;
+    const out = 0.45, thick = 0.08;
+    e.set(-tip * 0.6, 0, 0); q.setFromEuler(e);
     eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x0 + W / 2, y, z1 + out * 0.35), q, new THREE.Vector3(spanW * 0.7, thick * 0.85, out * 0.7)));
-    // +x near — shorter return
-    e.set(0, 0, tip); q.setFromEuler(e);
+      new THREE.Vector3(x0 + W / 2, y, z1 + out * 0.85), q, new THREE.Vector3(W * 0.55, thick, out)));
+    e.set(0, 0, tip * 0.6); q.setFromEuler(e);
     eave.setMatrixAt(ei++, tmpM.compose(
-      new THREE.Vector3(x1 + out * 0.35, y, z0 + D / 2), q, new THREE.Vector3(out * 0.7, thick * 0.85, spanD * 0.7)));
+      new THREE.Vector3(x1 + out * 0.85, y, z0 + D / 2), q, new THREE.Vector3(out, thick, D * 0.55)));
   }
   mark(eave);
 
-  // 5 gold ridge — only along far −x/−z peak (no cross over open desk cutaway)
+  // 5 gold ridge — atop the uppermost far tier
   const ridge = new THREE.InstancedMesh(pl, mats.gold, 2);
-  const ry = y0 + H + 0.85;
+  const ry = y0 + H + 0.1 + (TIERS - 1) * 0.38 + 0.28;
   ridge.setMatrixAt(0, tmpM.compose(
-    new THREE.Vector3(x0 + W / 2, ry, z0 - 0.15), new THREE.Quaternion(), new THREE.Vector3(W * 0.5, 0.1, 0.1)));
+    new THREE.Vector3(x0 + W / 2, ry, z0 - 0.2), new THREE.Quaternion(), new THREE.Vector3(W * 0.55, 0.1, 0.1)));
   ridge.setMatrixAt(1, tmpM.compose(
-    new THREE.Vector3(x0 - 0.15, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.1, 0.1, D * 0.5)));
+    new THREE.Vector3(x0 - 0.2, ry, z0 + D / 2), new THREE.Quaternion(), new THREE.Vector3(0.1, 0.1, D * 0.55)));
   mark(ridge);
 
   g.userData.mats = Object.values(mats);
