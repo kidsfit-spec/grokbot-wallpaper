@@ -11,6 +11,8 @@ let ui = { initUI() {}, renderUI() {} };
 let demoTimer = null;
 
 // Wallpaper mode (?mode=wallpaper, for Lively): office full screen + one status line, no interaction except hover.
+// ?layout=phone forces the phone chrome (for wide phones / Duo); desktop without the param is unchanged.
+// Phone chrome is denser (ui.css KIDS FIT Duo slim) but keeps every label and card.
 //   &floor=<id>   pin the floor (default: the floor with the most bots)
 //   &cycle=<sec>  go to the next floor every <sec> seconds through the normal elevator switch
 const params = new URLSearchParams(location.search);
