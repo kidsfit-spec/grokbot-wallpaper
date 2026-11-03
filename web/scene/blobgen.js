@@ -1,7 +1,8 @@
 // Procedural jelly blobs: the browser-side twin of assets/_src/blobs/build_blobs.py.
 // generateBlob({ shape, color, accessory, seed }) returns a THREE.Group with the blob GLB structure of
-// CONTRACT §7 (root `blob`; children `body`, `eye_L`, `eye_R`, optional `extra`; origin bottom centre,
-// ~0.8 m, faces +Z), so actor.js treats it exactly like a loaded GLB.
+// CONTRACT §7 (root `blob`; children `body`, `eye_L`, `eye_R`, optional `extra`, plus jelly `head` wrap
+// with `torso`/`arm_L`/`arm_R` bust; origin bottom centre, ~0.8 m, faces +Z), so actor.js treats it
+// exactly like a loaded GLB.
 //
 // Same recipe as the hand-made blobs: a closed 2D outline that is star-shaped around its origin becomes a
 // polar radius function r(theta); the body is an "inflated gummy slab" (flat, slightly domed face + a round
@@ -626,6 +627,69 @@ function trioColors(hex) {
   return [hex, `#${b.getHexString().toUpperCase()}`, `#${c.getHexString().toUpperCase()}`];
 }
 
+// ---------------------------------------------------------------- jelly bust (half-body + arms)
+// Soft torso + two hanging arms under the head silhouette, same physical material. Keeps the whole
+// figure near SIZE tall so actor.setModel scales stay comparable across bots.
+
+function attachJellyBust(root, hex) {
+  const mat = bodyMaterial(hex);
+  const head = new THREE.Group();
+  head.name = 'head';
+  while (root.children.length) head.add(root.children[0]);
+  root.add(head);
+
+  head.updateMatrixWorld(true);
+  const hb = new THREE.Box3().setFromObject(head);
+  const hw = Math.max(hb.max.x - hb.min.x, 0.01);
+  const hh = Math.max(hb.max.y - hb.min.y, 0.01);
+
+  const HEAD_H = SIZE * 0.54;
+  const TORSO_H = SIZE * 0.40;
+  const OVERLAP = SIZE * 0.07;
+  const s = HEAD_H / hh;
+  head.scale.setScalar(s);
+  // Centre xz; sit the head so it melts into the torso top.
+  head.position.set(
+    -(hb.min.x + hb.max.x) * 0.5 * s,
+    (TORSO_H - OVERLAP) - hb.min.y * s,
+    -(hb.min.z + hb.max.z) * 0.5 * s,
+  );
+
+  const torsoR = Math.min(hw * s * 0.40, SIZE * 0.26);
+  const torso = new THREE.Mesh(new THREE.SphereGeometry(1, 22, 16), mat);
+  torso.name = 'torso';
+  torso.scale.set(torsoR * 1.18, TORSO_H * 0.55, torsoR * 0.92);
+  torso.position.set(0, TORSO_H * 0.48, 0);
+  torso.castShadow = true;
+  root.add(torso);
+
+  const armLen = SIZE * 0.26;
+  const armR = SIZE * 0.052;
+  const shoulderY = TORSO_H * 0.74;
+  const shoulderX = torsoR * 1.02;
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(armR, armLen * 0.5, 6, 10), mat);
+    arm.name = side < 0 ? 'arm_L' : 'arm_R';
+    arm.position.set(side * shoulderX, shoulderY - armLen * 0.22, torsoR * 0.12);
+    arm.rotation.z = side * 0.38;
+    arm.rotation.x = 0.18;
+    arm.castShadow = true;
+    root.add(arm);
+  }
+
+  // Floor contact: flatten the assembly so min.y ≈ 0 (actor also recentres; keep local tidy).
+  root.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(root);
+  const dy = -bb.min.y;
+  const dx = -(bb.min.x + bb.max.x) * 0.5;
+  const dz = -(bb.min.z + bb.max.z) * 0.5;
+  for (const ch of root.children) {
+    ch.position.x += dx;
+    ch.position.y += dy;
+    ch.position.z += dz;
+  }
+}
+
 // ---------------------------------------------------------------- public API
 
 // The Grok Bot app's 11 avatar colours, for blobs nobody described (the gray last: never picked by the hash).
@@ -637,7 +701,7 @@ function tiltFor() { return 0; }
 
 /**
  * @param {{shape?: string, color?: string, accessory?: string, seed?: string|number}} look
- * @returns {THREE.Group} root `blob` (children: body, eye_L, eye_R, [eye_*_N for trio], [extra])
+ * @returns {THREE.Group} root `blob` (head wrap: body/eyes/[extra]; plus torso, arm_L, arm_R)
  */
 export function generateBlob({ shape, color, accessory, seed } = {}) {
   const sd = String(seed ?? 'blob');
@@ -668,6 +732,7 @@ export function generateBlob({ shape, color, accessory, seed } = {}) {
     extra.name = 'extra';
     root.add(extra);
   }
+  attachJellyBust(root, col);
   root.userData = { generated: true, look: { shape: sh, color: col, accessory: acc }, tris: parts.tris, tilt: tiltFor(sd) };
   return root;
 }
