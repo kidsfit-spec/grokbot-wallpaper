@@ -82,7 +82,7 @@ export function initScene(el, cbs = {}) {
     loadingEl = document.createElement('div');
     loadingEl.className = 'hq-loading';
     loadingEl.setAttribute('role', 'status');
-    loadingEl.innerHTML = '<span class="hq-loading-label">Building the office</span><span class="hq-loading-track"><i></i></span>';
+    loadingEl.innerHTML = '<span class="hq-loading-label">正在搭建辦公室</span><span class="hq-loading-track"><i></i></span>';
     container.append(loadingEl);
   }
 
@@ -521,7 +521,7 @@ export function captureScene({ width = 1600, height = 900, scale = 1, box = { x:
   const walls = inst.walls, live = walls?.data;
   try {
     if (live) {
-      const anon = { ...live, floorName: `Floor ${building.activeIndex + 1}`, bots: live.bots.map((b) => ({ ...b, name: '', task: '', step: '' })) };
+      const anon = { ...live, floorName: `分區 ${building.activeIndex + 1}`, bots: live.bots.map((b) => ({ ...b, name: '', task: '', step: '' })) };
       if (walls.screen) walls.drawScreen(anon);
       if (walls.board) walls.drawBoard(anon);
     }
