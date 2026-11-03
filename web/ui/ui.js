@@ -812,7 +812,6 @@ function layoutDock() {
 
 // the same query as ui.css would use; JS owns it so the DOM and the CSS never disagree
 const MQ_PHONE = '(max-width: 600px), (max-height: 500px) and (max-width: 950px)';
-const LAYOUT_PHONE = new URLSearchParams(location.search).get('layout') === 'phone';
 const MQ_LAND = '(max-height: 500px) and (orientation: landscape)';
 const DRAG_HYST = 6;
 
@@ -1034,11 +1033,7 @@ function watchPhone() {
   if (typeof matchMedia !== 'function') return;
   const a = matchMedia(MQ_PHONE), b = matchMedia(MQ_LAND);
   U.mqs = [a, b];
-  // ?layout=phone: force the phone chrome on wide phones / Duo (desktop CSS stays for real desktops without the param)
-  U.mqFn = () => {
-    const on = LAYOUT_PHONE || a.matches;
-    setPhone(on, on && (LAYOUT_PHONE ? false : b.matches));
-  };
+  U.mqFn = () => setPhone(a.matches, a.matches && b.matches);
   a.addEventListener('change', U.mqFn);
   b.addEventListener('change', U.mqFn);
   U.mqFn();
