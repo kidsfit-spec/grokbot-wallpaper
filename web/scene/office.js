@@ -56,6 +56,7 @@ export async function loadOfficeAssets(baseUrl) {
 // Per-floor accent + lounge corners (floorstyle.js) are added to the template here, after the spots are read. They need
 // the GLB lounge; the placeholder floor keeps one look (style = null).
 function finish(templates, spots, nightMaps, source) {
+  try { dojoify(templates); } catch (err) { console.warn('[office] dojo tint skipped:', err.message); }
   try { imacify(templates.floor_open); } catch (err) { console.warn('[office] iMac swap skipped:', err.message); }
   // re-read spots after iMac swap so screen_NN empties match the new glass
   try { spots = collectSpots(templates.floor_open); } catch (err) { console.warn('[office] spot refresh skipped:', err.message); }
@@ -66,6 +67,38 @@ function finish(templates, spots, nightMaps, source) {
     console.warn('[office] floor styles skipped:', err.message);
   }
   return { templates, spots, nightMaps, source, style };
+}
+
+// 怪獸道場 — Wong Tai Sin-inspired architectural palette (colours only). Retints materials by name; a multiply via
+// .color keeps baked lightmaps/maps intact. ?dojo=0 disables.
+const DOJO_TINT = {
+  wall_white: 0xF0D78A, baked_wall_left: 0xE8C96A,
+  baked_floor: 0xDCC9A8, cabin_floor: 0xDCC9A8, slab_white: 0xE8DFD0, baked_slab_top: 0xE8DFD0,
+  oak: 0x5C2E1F, trunk: 0x3D1F1A,
+  fabric_warm: 0xA84838, fabric_light: 0xE8D5A3,
+  glass_pane: 0xE8D4A8, glass_cabin: 0xE8D4A8, glass_shaft: 0xE8D4A8, night_windows: 0xF0DDB0,
+  roof_deck: 0xE8B923,
+  mullion_light: 0xA67C3A, aluminium: 0xA67C3A,
+  bar_white: 0xEDE3CC, pot_white: 0xEDE3CC,
+  graphite: 0x2A1612, black: 0x1E0F0C,
+};
+function dojoify(templates) {
+  if (new URLSearchParams(location.search).get('dojo') === '0') return;
+  const done = new Set();
+  for (const root of Object.values(templates)) {
+    root?.traverse((o) => {
+      if (!o.isMesh) return;
+      for (const m of [].concat(o.material)) {
+        if (!m || done.has(m) || !m.color) continue;
+        let hex = DOJO_TINT[m.name] ?? DOJO_TINT[o.name];
+        if (hex == null && /^leaf/.test(m.name || '')) hex = 0x4E8A5C;   // richer jade
+        if (hex == null) continue;
+        done.add(m);
+        m.color.setHex(hex);
+        m.needsUpdate = true;
+      }
+    });
+  }
 }
 
 // KIDS FIT HQ — colorful iMacs (Apple 24″ seven colors). Replaces every desk laptop (GLB `laptops` group or the
