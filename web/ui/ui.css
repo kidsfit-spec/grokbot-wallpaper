@@ -63,7 +63,7 @@
    Lit from above, a slow light inside, a short soft shadow (it sits on white, not on a dark sky). */
 
 .bhq-surface {
-  --base: #232327; --glow: #6E6E78; --hi: #F2F2F7; --mid: #B4B4BA; --dim: #8E8E96; --g1: .2; --g2: .09;
+  --base: #3D1F1A; --glow: #D4AF37; --hi: #FBF3E2; --mid: #E2CFA8; --dim: #C4AC85; --g1: .2; --g2: .09;
   position: relative; overflow: hidden; isolation: isolate;
   color: var(--hi);
   background: linear-gradient(180deg, rgba(255, 255, 255, .07), transparent 45%, rgba(0, 0, 0, .14)), var(--base);

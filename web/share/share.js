@@ -17,7 +17,7 @@ const SUPERSAMPLE = 1.5;                               // desktop only: phones r
 const MARK_SRC = new URL('../../assets/brand/logo-mark.png', import.meta.url).href;
 const FILE_NAME = 'grok-bot-office.png';
 const POST_TEXT = '我的怪獸道場';
-const INK = '#16171A', GREY = '#7A7B82', WORKING = '#34C759';
+const INK = '#16171A', GREY = '#7F7266', WORKING = '#34C759';
 const BRAND_FONT = '"Nunito", ui-rounded, system-ui, sans-serif';
 const TEXT_FONT = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
