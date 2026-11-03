@@ -3,7 +3,7 @@
 // load fails, a procedural placeholder that follows the same contract is built in code.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildFloorStyles } from './floorstyle.js';
+import { buildFloorStyles } from './floorstyle.js?v=dojo4';
 
 export const DESK_COUNT = 20;
 export const LOUNGE_COUNT = 6;
@@ -66,22 +66,23 @@ function finish(templates, spots, nightMaps, source) {
   } catch (err) {
     console.warn('[office] floor styles skipped:', err.message);
   }
+  try { dojoify(templates); } catch (err) { console.warn('[office] dojo retint skipped:', err.message); }  // again after floorstyle Kit mats
   return { templates, spots, nightMaps, source, style };
 }
 
 // 怪獸道場 — Wong Tai Sin-inspired architectural palette (colours only). Retints materials by name; a multiply via
 // .color keeps baked lightmaps/maps intact. ?dojo=0 disables.
 const DOJO_TINT = {
-  // stronger yellow walls so they survive daylight ambient multiply
-  wall_white: 0xF5C542, baked_wall_left: 0xF0C030,
-  baked_floor: 0xE0C090, cabin_floor: 0xE0C090, slab_white: 0xE8DFD0, baked_slab_top: 0xE8DFD0,
+  // Wong Tai Sin plaster / vermillion / amber — hot enough to read through lightmaps + night ambient
+  wall_white: 0xFFD24A, baked_wall_left: 0xFFC933,
+  baked_floor: 0xD4B48A, cabin_floor: 0xD4B48A, slab_white: 0xE8DFD0, baked_slab_top: 0xE8DFD0,
   oak: 0x5C2E1F, trunk: 0x3D1F1A,
-  fabric_warm: 0xC43A2A, fabric_light: 0xE8C878,
-  glass_pane: 0xE8C878, glass_cabin: 0xE8C878, glass_shaft: 0xE8C878, night_windows: 0xE8C060,
+  fabric_warm: 0xD12B1B, fabric_light: 0xE8C878,
+  glass_pane: 0xE8B44A, glass_cabin: 0xE8B44A, glass_shaft: 0xE8B44A, night_windows: 0xE0A838,
   roof_deck: 0xE8B923,
   mullion_light: 0xA67C3A, aluminium: 0xA67C3A,
   bar_white: 0xEDE3CC, pot_white: 0xEDE3CC,
-  graphite: 0x2A1612, black: 0x1E0F0C,
+  graphite: 0x4A1810, black: 0x2A100C,
 };
 function dojoify(templates) {
   if (new URLSearchParams(location.search).get('dojo') === '0') return;
@@ -97,6 +98,7 @@ function dojoify(templates) {
         done.add(m);
         m.userData.dojoTint = hex;          // daylight.js multiplies ambient by this (baked/glass)
         m.color.setHex(hex);
+        if (m.name === 'night_windows' && m.emissive) m.emissive.setHex(0xE0A838);
         m.needsUpdate = true;
       }
     });

@@ -237,7 +237,7 @@ export function createDaylight({ scene, renderer }) {
       if (!o.isMesh) return;
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         if (m.userData.nightPatched) { baked.add(m); patch.relight(m); }
-        if (m.name === 'glass_pane') glass.add(m);
+        if (m.name === 'glass_pane' || m.name === 'glass_cabin' || m.name === 'glass_shaft') glass.add(m);
       }
     });
     const inst = building.activeOpen();
@@ -319,7 +319,8 @@ export function createDaylight({ scene, renderer }) {
     for (const mat of glass) {
       const d = mat.userData.dojoTint;
       if (typeof d === 'number') {
-        mat.color.setHex(d).multiply(tmp);
+        // dojo amber replaces the time-of-day glassC (navy at night was wiping the tint)
+        mat.color.setHex(d);
       } else {
         mat.color.copy(tmp);
       }

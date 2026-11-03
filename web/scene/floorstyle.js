@@ -24,7 +24,7 @@ const DROPS = [[4.13, -0.3], [4.13, 3.9]]; // baked shadows of two desk pendants
 const PPM = 128, SPPM = 64;                // px per metre: patch and rug textures, shadow layers
 const RUG_H = 0.012;
 const GLB_LOUNGE = ['sofa', 'armchair_1', 'armchair_2', 'coffee_table'];
-const FALLBACK = { oak: '#D9C39F', black: '#1C1C1E', graphite: '#3A3A3C', fabric_warm: '#C9C5BE', fabric_light: '#E2DFDA', pot_white: '#F1EFEB', bar_white: '#EBE9E4' };
+const FALLBACK = { oak: '#5C2E1F', black: '#2A100C', graphite: '#4A1810', fabric_warm: '#D12B1B', fabric_light: '#E8C878', pot_white: '#EDE3CC', bar_white: '#EDE3CC' };  // 怪獸道場
 const BOOKS = ['#ECE6DA', '#D3CABA', '#ABA294', '#6B6762', '#36363A', '#BCA680'];
 const WHITE = new THREE.Color(1, 1, 1);
 const WOOL = new THREE.Color('#F2EEE6');
