@@ -812,3 +812,7 @@ html.bhq-phone body { overscroll-behavior: none; -webkit-tap-highlight-color: tr
 @media (prefers-reduced-transparency: reduce) {
   .bhq-phone .bhq-sheet { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1A1A1E; }
 }
+
+/* white1: light terminal accent on floors head */
+.bhq-cli { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; letter-spacing: 0.02em; opacity: 0.92; }
+.bhq-fhead { font-variant-ligatures: none; }

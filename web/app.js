@@ -1,8 +1,8 @@
 // Glue: polls /api/state (CONTRACT §4), keeps the view (floor, selection), feeds the scene and the UI.
 // With #<topic> in the link it reads the user's bots from their channel instead (feed.js, lib/feedbase.js): no server.
 // Without either (static preview) it runs on web/data/demo-state.json with a local simulation.
-import { applyCssVars } from './style/dojo.js?v=dojo5h';
-import { initScene, renderScene, zoom, focusBot } from './scene/scene.js?v=dojo5h';
+import { applyCssVars } from './style/dojo.js?v=white1';
+import { initScene, renderScene, zoom, focusBot } from './scene/scene.js?v=white1';
 import { initSound, sfx } from './audio/sound.js';
 
 const POLL_MS = 1000;
@@ -19,7 +19,7 @@ const WALLPAPER = params.get('mode') === 'wallpaper';
 if (WALLPAPER) document.documentElement.classList.add('wallpaper');
 
 try {
-  ui = await import(WALLPAPER ? './wallpaper.js' : './ui/ui.js');
+  ui = await import(WALLPAPER ? './wallpaper.js?v=white1' : './ui/ui.js?v=white1');
 } catch (err) {
   console.warn('[app] UI module not available yet:', err.message);
 }

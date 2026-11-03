@@ -1,5 +1,5 @@
-// 怪獸道場 — Wong Tai Sin-inspired architectural style (colour, material roles, a procedural roof shell).
-// Architecture only: no deities, plaques, incense or glyphs. Sole owner of the dojo hex values.
+// 怪獸道場 — optional Wong Tai Sin shell/tint (OFF by default). White upstream office is the live look.
+// Opt-in via ?dojo=1|tint|shell. Architecture only: no deities. Sole owner of dojo hex values when enabled.
 import * as THREE from 'three';
 
 export const PALETTE = {
@@ -19,7 +19,7 @@ const ROLES = {
 };
 
 export const DOJO = {
-  version: 'dojo5h',
+  version: 'white1',
   palette: PALETTE,
   nightFloor: 0.35,
   // floorstyle.js FALLBACK kit materials
@@ -28,8 +28,10 @@ export const DOJO = {
 };
 
 export function fromUrl(search = location.search) {
+  // Default OFF (white upstream office). Opt-in: ?dojo=1 (tint+shell), ?dojo=tint (tint only).
   const v = new URLSearchParams(search).get('dojo');
-  return { enabled: v !== '0', shell: v !== '0' && v !== 'tint' };
+  const on = v === '1' || v === 'shell' || v === 'tint';
+  return { enabled: on, shell: v === '1' || v === 'shell' };
 }
 
 // Stamps the base colour once so re-runs (and daylight's per-frame relight) never compound.

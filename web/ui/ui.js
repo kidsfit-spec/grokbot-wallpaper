@@ -487,7 +487,7 @@ function buildTopbar(root) {
     h('img', { class: 'bhq-mark', src: MARK_SRC, alt: '', draggable: 'false' }),
     h('b', { class: 'bhq-word', text: '怪獸道場' }),
     h('span', { class: 'bhq-sep', 'aria-hidden': 'true' }),
-    h('span', { class: 'bhq-live' }, h('i', { class: 'bhq-dot bhq-live-dot', 'aria-hidden': 'true' }), '直播 · ', clock));
+    h('span', { class: 'bhq-live' }, h('i', { class: 'bhq-dot bhq-live-dot', 'aria-hidden': 'true' }), '--live · ', clock));
 
   const chips = {};
   const summary = h('div', { class: 'bhq-summary bhq-surface', role: 'group', 'aria-label': 'Bot 狀態' });
@@ -531,7 +531,7 @@ function buildFloors(root) {
   const shaft = h('div', { class: 'bhq-shaft' }, car);
   const count = h('b', { class: 'bhq-num' });
   const fscroll = h('div', { class: 'bhq-fscroll' }, shaft);
-  root.append(h('div', { class: 'bhq-fhead' }, h('span', { text: '分區' }), count), fscroll);
+  root.append(h('div', { class: 'bhq-fhead' }, h('span', { class: 'bhq-cli', text: '$ ls 分區/' }), count), fscroll);
   U.fl = { root, shaft, car, count, fscroll, carTop: null, carH: null, carShown: false, ready: false };
   if (typeof ResizeObserver === 'function') {
     U.ro = new ResizeObserver(() => placeCar());
