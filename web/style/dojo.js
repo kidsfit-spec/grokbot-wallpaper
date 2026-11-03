@@ -19,7 +19,7 @@ const ROLES = {
 };
 
 export const DOJO = {
-  version: 'dojo5',
+  version: 'dojo5b',
   palette: PALETTE,
   nightFloor: 0.35,
   // floorstyle.js FALLBACK kit materials
