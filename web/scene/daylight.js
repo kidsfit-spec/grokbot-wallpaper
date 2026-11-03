@@ -304,9 +304,28 @@ export function createDaylight({ scene, renderer }) {
       if (kind === 'lamp') mat.emissiveIntensity = p.lamps * 2.4;
       else if (kind === 'windows') mat.emissiveIntensity = p.windows * 1.7;
     }
-    for (const mat of baked) mat.color.setRGB(...p.tint);
+    for (const mat of baked) {
+      const d = mat.userData.dojoTint;
+      if (typeof d === 'number') {
+        mat.color.setHex(d);
+        mat.color.r *= p.tint[0];
+        mat.color.g *= p.tint[1];
+        mat.color.b *= p.tint[2];
+      } else {
+        mat.color.setRGB(...p.tint);
+      }
+    }
     tmp.setRGB(...p.glassC, THREE.SRGBColorSpace);
-    for (const mat of glass) { mat.color.copy(tmp); mat.emissive.copy(tmp).multiplyScalar(p.glassE); mat.opacity = p.glassA; }
+    for (const mat of glass) {
+      const d = mat.userData.dojoTint;
+      if (typeof d === 'number') {
+        mat.color.setHex(d).multiply(tmp);
+      } else {
+        mat.color.copy(tmp);
+      }
+      mat.emissive.copy(mat.color).multiplyScalar(p.glassE);
+      mat.opacity = p.glassA;
+    }
     patch.update(dir, p.floorSunC, p.floorSun, 1 - p.bake);
   }
 

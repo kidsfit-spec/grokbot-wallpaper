@@ -72,11 +72,12 @@ function finish(templates, spots, nightMaps, source) {
 // 怪獸道場 — Wong Tai Sin-inspired architectural palette (colours only). Retints materials by name; a multiply via
 // .color keeps baked lightmaps/maps intact. ?dojo=0 disables.
 const DOJO_TINT = {
-  wall_white: 0xF0D78A, baked_wall_left: 0xE8C96A,
-  baked_floor: 0xDCC9A8, cabin_floor: 0xDCC9A8, slab_white: 0xE8DFD0, baked_slab_top: 0xE8DFD0,
+  // stronger yellow walls so they survive daylight ambient multiply
+  wall_white: 0xF5C542, baked_wall_left: 0xF0C030,
+  baked_floor: 0xE0C090, cabin_floor: 0xE0C090, slab_white: 0xE8DFD0, baked_slab_top: 0xE8DFD0,
   oak: 0x5C2E1F, trunk: 0x3D1F1A,
-  fabric_warm: 0xA84838, fabric_light: 0xE8D5A3,
-  glass_pane: 0xE8D4A8, glass_cabin: 0xE8D4A8, glass_shaft: 0xE8D4A8, night_windows: 0xF0DDB0,
+  fabric_warm: 0xC43A2A, fabric_light: 0xE8C878,
+  glass_pane: 0xE8C878, glass_cabin: 0xE8C878, glass_shaft: 0xE8C878, night_windows: 0xE8C060,
   roof_deck: 0xE8B923,
   mullion_light: 0xA67C3A, aluminium: 0xA67C3A,
   bar_white: 0xEDE3CC, pot_white: 0xEDE3CC,
@@ -94,6 +95,7 @@ function dojoify(templates) {
         if (hex == null && /^leaf/.test(m.name || '')) hex = 0x4E8A5C;   // richer jade
         if (hex == null) continue;
         done.add(m);
+        m.userData.dojoTint = hex;          // daylight.js multiplies ambient by this (baked/glass)
         m.color.setHex(hex);
         m.needsUpdate = true;
       }
