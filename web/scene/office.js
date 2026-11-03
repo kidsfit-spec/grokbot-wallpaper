@@ -57,6 +57,8 @@ export async function loadOfficeAssets(baseUrl) {
 // the GLB lounge; the placeholder floor keeps one look (style = null).
 function finish(templates, spots, nightMaps, source) {
   try { imacify(templates.floor_open); } catch (err) { console.warn('[office] iMac swap skipped:', err.message); }
+  // re-read spots after iMac swap so screen_NN empties match the new glass
+  try { spots = collectSpots(templates.floor_open); } catch (err) { console.warn('[office] spot refresh skipped:', err.message); }
   let style = null;
   try {
     if (new URLSearchParams(location.search).get('floorstyle') !== '0') style = buildFloorStyles(templates.floor_open, spots.lounges);   // test switch: ?floorstyle=0
