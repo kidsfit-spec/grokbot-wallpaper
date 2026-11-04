@@ -9,7 +9,7 @@
 // over it (the bake is one flat colour around there) and bring their own soft shadows, drawn the way the bake falls: a
 // blurred sweep of each footprint along the sun offset, plus a tight contact shadow.
 import * as THREE from 'three';
-import { DOJO, fromUrl } from '../style/dojo.js?v=jelly2';
+import { DOJO, fromUrl } from '../style/dojo.js?v=jelly3';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 // Wool-and-ceramic colours (sRGB): sage, eucalyptus, slate, lilac, mauve, clay, ochre.

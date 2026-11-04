@@ -8,8 +8,8 @@ import * as THREE from 'three';
 import { Spring, smoothstep } from './spring.js';
 import { FLOOR_STEP, SLAB, SHAFT_POS } from './office.js';
 import { WallDisplays } from './walls.js';
-import { floorStyles, applyFloorStyle, styleObjects, styleNightMaps } from './floorstyle.js?v=jelly2';
-import { buildShell } from '../style/dojo.js?v=jelly2';
+import { floorStyles, applyFloorStyle, styleObjects, styleNightMaps } from './floorstyle.js?v=jelly3';
+import { buildShell } from '../style/dojo.js?v=jelly3';
 
 const LIFT = 20;                        // how far upper floors slide up, out of the frame (m)
 const SWAP_AT = 0.14;                   // s after a switch starts: blur peak, open/closed swap
